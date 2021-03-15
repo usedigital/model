@@ -1,8 +1,8 @@
 <?php
 
-use Jenssegers\Model\Contracts\CastsAttributes;
-use Jenssegers\Model\Contracts\CastsInboundAttributes;
-use Jenssegers\Model\Model;
+use UseDigital\Model\Contracts\CastsAttributes;
+use UseDigital\Model\Contracts\CastsInboundAttributes;
+use UseDigital\Model\Model;
 use PHPUnit\Framework\TestCase;
 
 /**

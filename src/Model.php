@@ -1,4 +1,4 @@
-<?php namespace Jenssegers\Model;
+<?php namespace UseDigital\Model;
 
 use ArrayAccess;
 use Illuminate\Contracts\Support\Arrayable;
@@ -6,7 +6,7 @@ use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Str;
-use Jenssegers\Model\Contracts\CastsInboundAttributes;
+use UseDigital\Model\Contracts\CastsInboundAttributes;
 use JsonSerializable;
 
 abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
@@ -131,7 +131,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @param  array  $attributes
      * @return $this
      *
-     * @throws \Jenssegers\Model\MassAssignmentException
+     * @throws \UseDigital\Model\MassAssignmentException
      */
     public function fill(array $attributes)
     {
@@ -189,7 +189,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  array  $attributes
      * @param  bool   $exists
-     * @return \Jenssegers\Model\Model
+     * @return \UseDigital\Model\Model
      */
     public function newInstance($attributes = [])
     {
@@ -815,6 +815,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             return $value;
         }
 
+
         switch ($castType) {
             case 'int':
             case 'integer':
@@ -834,7 +835,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             case 'json':
                 return $this->fromJson($value);
             case 'collection':
-                return new BaseCollection($this->fromJson($value));
+                return new BaseCollection(is_string($value) ? $this->fromJson($value) : $value);
         }
 
         if ($this->isClassCastable($key)) {
@@ -963,7 +964,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Clone the model into a new, non-existing instance.
      *
      * @param  array|null  $except
-     * @return \Jenssegers\Model\Model
+     * @return \UseDigital\Model\Model
      */
     public function replicate(array $except = null)
     {

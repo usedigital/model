@@ -1,4 +1,4 @@
-<?php namespace Jenssegers\Model\Contracts;
+<?php namespace UseDigital\Model\Contracts;
 
 interface CastsInboundAttributes
 {

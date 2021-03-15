@@ -1,6 +1,6 @@
 <?php
 
-use Jenssegers\Model\Model;
+use UseDigital\Model\Model;
 
 class ModelStub extends Model
 {
