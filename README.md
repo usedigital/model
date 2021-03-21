@@ -31,9 +31,9 @@ Example
 
 ```php
 
-use UseDigital\Model\Model;
+use UseDigital\Model\GenericModel;
 
-class User extends Model {
+class User extends GenericModel {
 
     protected $hidden = ['password'];
 

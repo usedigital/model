@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use UseDigital\Model\Contracts\CastsInboundAttributes;
 use JsonSerializable;
 
-abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
+abstract class GenericModel implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
 {
 
     /**
@@ -189,7 +189,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  array  $attributes
      * @param  bool   $exists
-     * @return \UseDigital\Model\Model
+     *
+     * @return \UseDigital\Model\GenericModel
      */
     public function newInstance($attributes = [])
     {
@@ -964,7 +965,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Clone the model into a new, non-existing instance.
      *
      * @param  array|null  $except
-     * @return \UseDigital\Model\Model
+     *
+     * @return \UseDigital\Model\GenericModel
      */
     public function replicate(array $except = null)
     {
@@ -1159,3 +1161,5 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $this->toJson();
     }
 }
+
+class_alias(GenericModel::class, 'Usedigital\Model\Model');

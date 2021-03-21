@@ -2,7 +2,7 @@
 
 use UseDigital\Model\Contracts\CastsAttributes;
 use UseDigital\Model\Contracts\CastsInboundAttributes;
-use UseDigital\Model\Model;
+use UseDigital\Model\GenericModel;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,7 +12,7 @@ class ModelCustomCastingTest extends TestCase
 {
     public function testBasicCustomCasting()
     {
-        $model = new TestModelWithCustomCast;
+        $model = new TestGenericModelWithCustomCast;
         $model->reversed = 'taylor';
 
         $this->assertEquals('taylor', $model->reversed);
@@ -64,7 +64,7 @@ class ModelCustomCastingTest extends TestCase
     public function testOneWayCasting()
     {
         // CastsInboundAttributes is used for casting that is unidirectional... only use case I can think of is one-way hashing...
-        $model = new TestModelWithCustomCast;
+        $model = new TestGenericModelWithCustomCast;
 
         $model->password = 'secret';
 
@@ -83,7 +83,7 @@ class ModelCustomCastingTest extends TestCase
 
     public function testCastClassResolution()
     {
-        $model = new TestModelWithCustomCast;
+        $model = new TestGenericModelWithCustomCast;
 
         $model->other_password = 'secret';
 
@@ -96,7 +96,7 @@ class ModelCustomCastingTest extends TestCase
 
     public function testSettingRawAttributesClearsTheCastCache()
     {
-        $model = new TestModelWithCustomCast;
+        $model = new TestGenericModelWithCustomCast;
 
         $model->setRawAttributes([
             'address_line_one' => '110 Kingsbrook St.',
@@ -114,7 +114,7 @@ class ModelCustomCastingTest extends TestCase
     }
 }
 
-class TestModelWithCustomCast extends Model
+class TestGenericModelWithCustomCast extends GenericModel
 {
     /**
      * The attributes that should be cast to native types.

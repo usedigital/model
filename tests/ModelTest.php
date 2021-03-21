@@ -6,7 +6,7 @@ class ModelTest extends TestCase
 {
     public function testAttributeManipulation()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'foo';
 
         $this->assertEquals('foo', $model->name);
@@ -23,13 +23,13 @@ class ModelTest extends TestCase
 
     public function testConstructor()
     {
-        $model = new ModelStub(['name' => 'john']);
+        $model = new GenericModelStub(['name' => 'john']);
         $this->assertEquals('john', $model->name);
     }
 
     public function testNewInstanceWithAttributes()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $instance = $model->newInstance(['name' => 'john']);
 
         $this->assertInstanceOf('ModelStub', $instance);
@@ -38,7 +38,7 @@ class ModelTest extends TestCase
 
     public function testHidden()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->password = 'secret';
 
         $attributes = $model->attributesToArray();
@@ -48,7 +48,7 @@ class ModelTest extends TestCase
 
     public function testVisible()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->setVisible(['name']);
         $model->name = 'John Doe';
         $model->city = 'Paris';
@@ -59,7 +59,7 @@ class ModelTest extends TestCase
 
     public function testToArray()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'foo';
         $model->bar = null;
         $model->password = 'password1';
@@ -81,7 +81,7 @@ class ModelTest extends TestCase
 
     public function testToJson()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'john';
         $model->foo = 10;
 
@@ -95,7 +95,7 @@ class ModelTest extends TestCase
 
     public function testMutator()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->list_items = ['name' => 'john'];
         $this->assertEquals(['name' => 'john'], $model->list_items);
         $attributes = $model->getAttributes();
@@ -103,7 +103,7 @@ class ModelTest extends TestCase
 
         $birthday = strtotime('245 months ago');
 
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->birthday = '245 months ago';
 
         $this->assertEquals(date('Y-m-d', $birthday), $model->birthday);
@@ -112,7 +112,7 @@ class ModelTest extends TestCase
 
     public function testToArrayUsesMutators()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->list_items = [1, 2, 3];
         $array = $model->toArray();
 
@@ -121,7 +121,7 @@ class ModelTest extends TestCase
 
     public function testReplicate()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'John Doe';
         $model->city = 'Paris';
 
@@ -132,11 +132,11 @@ class ModelTest extends TestCase
 
     public function testAppends()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $array = $model->toArray();
         $this->assertFalse(isset($array['test']));
 
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->setAppends(['test']);
         $array = $model->toArray();
         $this->assertTrue(isset($array['test']));
@@ -145,7 +145,7 @@ class ModelTest extends TestCase
 
     public function testArrayAccess()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'John Doen';
         $model['city'] = 'Paris';
 
@@ -155,7 +155,7 @@ class ModelTest extends TestCase
 
     public function testSerialize()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->name = 'john';
         $model->foo = 10;
 
@@ -165,7 +165,7 @@ class ModelTest extends TestCase
 
     public function testCasts()
     {
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->score = '0.34';
         $model->data = ['foo' => 'bar'];
         $model->count = 1;
@@ -203,7 +203,7 @@ class ModelTest extends TestCase
 
     public function testGuarded()
     {
-        $model = new ModelStub(['secret' => 'foo']);
+        $model = new GenericModelStub(['secret' => 'foo']);
         $this->assertTrue($model->isGuarded('secret'));
         $this->assertNull($model->secret);
         $this->assertContains('secret', $model->getGuarded());
@@ -211,34 +211,34 @@ class ModelTest extends TestCase
         $model->secret = 'bar';
         $this->assertEquals('bar', $model->secret);
 
-        ModelStub::unguard();
+        GenericModelStub::unguard();
 
-        $this->assertTrue(ModelStub::isUnguarded());
-        $model = new ModelStub(['secret' => 'foo']);
+        $this->assertTrue(GenericModelStub::isUnguarded());
+        $model = new GenericModelStub(['secret' => 'foo']);
         $this->assertEquals('foo', $model->secret);
 
-        ModelStub::reguard();
+        GenericModelStub::reguard();
     }
 
     public function testGuardedCallback()
     {
-        ModelStub::unguard();
+        GenericModelStub::unguard();
         $mock = $this->getMockBuilder('stdClass')
             ->setMethods(['callback'])
             ->getMock();
         $mock->expects($this->once())
             ->method('callback')
             ->will($this->returnValue('foo'));
-        $string = ModelStub::unguarded([$mock, 'callback']);
+        $string = GenericModelStub::unguarded([$mock, 'callback']);
         $this->assertEquals('foo', $string);
-        ModelStub::reguard();
+        GenericModelStub::reguard();
     }
 
     public function testTotallyGuarded()
     {
         $this->expectException('UseDigital\Model\MassAssignmentException');
 
-        $model = new ModelStub();
+        $model = new GenericModelStub();
         $model->guard(['*']);
         $model->fillable([]);
         $model->fill(['name' => 'John Doe']);
@@ -246,7 +246,7 @@ class ModelTest extends TestCase
 
     public function testFillable()
     {
-        $model = new ModelStub(['foo' => 'bar']);
+        $model = new GenericModelStub(['foo' => 'bar']);
         $this->assertFalse($model->isFillable('foo'));
         $this->assertNull($model->foo);
         $this->assertNotContains('foo', $model->getFillable());
@@ -254,14 +254,14 @@ class ModelTest extends TestCase
         $model->foo = 'bar';
         $this->assertEquals('bar', $model->foo);
 
-        $model = new ModelStub;
+        $model = new GenericModelStub;
         $model->forceFill(['foo' => 'bar']);
         $this->assertEquals('bar', $model->foo);
     }
 
     public function testHydrate()
     {
-        $models = ModelStub::hydrate([['name' => 'John Doe']]);
+        $models = GenericModelStub::hydrate([['name' => 'John Doe']]);
         $this->assertEquals('John Doe', $models[0]->name);
     }
 }
