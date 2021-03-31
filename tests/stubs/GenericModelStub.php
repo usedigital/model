@@ -1,8 +1,8 @@
 <?php
 
-use Jenssegers\Model\Model;
+use UseDigital\Model\GenericModel;
 
-class ModelStub extends Model
+class GenericModelStub extends GenericModel
 {
     protected $hidden = ['password'];
 

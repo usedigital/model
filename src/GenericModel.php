@@ -1,14 +1,15 @@
-<?php namespace Jenssegers\Model;
+<?php namespace UseDigital\Model;
 
 use ArrayAccess;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\Str;
+use UseDigital\Model\Contracts\CastsInboundAttributes;
 use JsonSerializable;
 
-abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
+abstract class GenericModel implements ArrayAccess, Arrayable, Jsonable, JsonSerializable
 {
 
     /**
@@ -61,6 +62,38 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     protected $casts = [];
 
     /**
+     * The attributes that have been cast using custom classes.
+     *
+     * @var array
+     */
+    protected $classCastCache = [];
+
+    /**
+     * The built-in, primitive cast types supported by Eloquent.
+     *
+     * @var array
+     */
+    protected static $primitiveCastTypes = [
+        'array',
+        'bool',
+        'boolean',
+        'collection',
+        'custom_datetime',
+        'date',
+        'datetime',
+        'decimal',
+        'double',
+        'float',
+        'int',
+        'integer',
+        'json',
+        'object',
+        'real',
+        'string',
+        'timestamp',
+    ];
+
+    /**
      * Indicates whether attributes are snake cased on arrays.
      *
      * @var bool
@@ -98,7 +131,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @param  array  $attributes
      * @return $this
      *
-     * @throws \Jenssegers\Model\MassAssignmentException
+     * @throws \UseDigital\Model\MassAssignmentException
      */
     public function fill(array $attributes)
     {
@@ -156,7 +189,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  array  $attributes
      * @param  bool   $exists
-     * @return \Jenssegers\Model\Model
+     *
+     * @return \UseDigital\Model\GenericModel
      */
     public function newInstance($attributes = [])
     {
@@ -483,16 +517,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // Next we will handle any casts that have been setup for this model and cast
         // the values to their appropriate type. If the attribute has a mutator we
         // will not perform the cast on those attributes to avoid any confusion.
-        foreach ($this->casts as $key => $value) {
-            if (! array_key_exists($key, $attributes) ||
-                in_array($key, $mutatedAttributes)) {
-                continue;
-            }
-
-            $attributes[$key] = $this->castAttribute(
-                $key, $attributes[$key]
-            );
-        }
+        $attributes = $this->addCastAttributesToArray(
+            $attributes, $mutatedAttributes
+        );
 
         // Here we will grab all of the appended, calculated attributes to this model
         // as these attributes are not really in the attributes array, but are run
@@ -505,13 +532,40 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
+     * Add the casted attributes to the attributes array.
+     *
+     * @param  array  $attributes
+     * @param  array  $mutatedAttributes
+     * @return array
+     */
+    protected function addCastAttributesToArray(array $attributes, array $mutatedAttributes)
+    {
+        foreach ($this->casts as $key => $value) {
+            if (! array_key_exists($key, $attributes) ||
+                in_array($key, $mutatedAttributes) ||
+                $this->isClassCastable($key)) {
+                continue;
+            }
+
+            // Here we will cast the attribute. Then, if the cast is a date or datetime cast
+            // then we will serialize the date for the array. This will convert the dates
+            // to strings based on the date format specified for these Eloquent models.
+            $attributes[$key] = $this->castAttribute(
+                $key, $attributes[$key]
+            );
+        }
+
+        return $attributes;
+    }
+
+    /**
      * Get an attribute array of all arrayable attributes.
      *
      * @return array
      */
     protected function getArrayableAttributes()
     {
-        return $this->getArrayableItems($this->attributes);
+        return $this->getArrayableItems($this->getAttributes());
     }
 
     /**
@@ -565,6 +619,11 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     protected function getAttributeValue($key)
     {
         $value = $this->getAttributeFromArray($key);
+
+        // If the attribute is castable via a class, cast it.
+        if ($this->isClassCastable($key)) {
+            return $this->getClassCastableAttributeValue($key);
+        }
 
         // If the attribute has a get mutator, we will call that then return what
         // it returns as the value, which is useful for transforming values on
@@ -658,6 +717,80 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
+     * Determine if the given key is cast using a custom class.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    protected function isClassCastable($key)
+    {
+        return array_key_exists($key, $this->casts) &&
+                class_exists($class = $this->parseCasterClass($this->casts[$key])) &&
+                ! in_array($class, static::$primitiveCastTypes);
+    }
+
+    /**
+     * Resolve the custom caster class for a given key.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    protected function resolveCasterClass($key)
+    {
+        if (strpos($castType = $this->casts[$key], ':') === false) {
+            return new $castType;
+        }
+
+        $segments = explode(':', $castType, 2);
+
+        return new $segments[0](...explode(',', $segments[1]));
+    }
+
+    /**
+     * Parse the given caster class, removing any arguments.
+     *
+     * @param  string  $class
+     * @return string
+     */
+    protected function parseCasterClass($class)
+    {
+        return strpos($class, ':') === false
+                        ? $class
+                        : explode(':', $class, 2)[0];
+    }
+
+    /**
+     * Merge the cast class attributes back into the model.
+     *
+     * @return void
+     */
+    protected function mergeAttributesFromClassCasts()
+    {
+        foreach ($this->classCastCache as $key => $value) {
+            $caster = $this->resolveCasterClass($key);
+
+            $this->attributes = array_merge(
+                $this->attributes,
+                $caster instanceof CastsInboundAttributes
+                       ? [$key => $value]
+                       : $this->normalizeCastClassResponse($key, $caster->set($this, $key, $value, $this->attributes))
+            );
+        }
+    }
+
+    /**
+     * Normalize the response from a custom class caster.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return array
+     */
+    protected function normalizeCastClassResponse($key, $value)
+    {
+        return is_array($value) ? $value : [$key => $value];
+    }
+
+    /**
      * Get the type of cast for a model attribute.
      *
      * @param  string  $key
@@ -677,11 +810,14 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function castAttribute($key, $value)
     {
-        if (is_null($value)) {
+        $castType = $this->getCastType($key);
+
+        if (is_null($value) && in_array($castType, static::$primitiveCastTypes)) {
             return $value;
         }
 
-        switch ($this->getCastType($key)) {
+
+        switch ($castType) {
             case 'int':
             case 'integer':
                 return (int) $value;
@@ -700,9 +836,32 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             case 'json':
                 return $this->fromJson($value);
             case 'collection':
-                return new BaseCollection($this->fromJson($value));
-            default:
-                return $value;
+                return new BaseCollection(is_string($value) ? $this->fromJson($value) : $value);
+        }
+
+        if ($this->isClassCastable($key)) {
+            return $this->getClassCastableAttributeValue($key);
+        }
+
+        return $value;
+    }
+
+    /**
+     * Cast the given attribute using a custom cast class.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    protected function getClassCastableAttributeValue($key)
+    {
+        if (isset($this->classCastCache[$key])) {
+            return $this->classCastCache[$key];
+        } else {
+            $caster = $this->resolveCasterClass($key);
+
+            return $this->classCastCache[$key] = $caster instanceof CastsInboundAttributes
+                ? ($this->attributes[$key] ?? null)
+                : $caster->get($this, $key, $this->attributes[$key] ?? null, $this->attributes);
         }
     }
 
@@ -724,6 +883,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             return $this->{$method}($value);
         }
 
+        if ($this->isClassCastable($key)) {
+            $this->setClassCastableAttribute($key, $value);
+
+            return $this;
+        }
+
         if ($this->isJsonCastable($key) && ! is_null($value)) {
             $value = $this->asJson($value);
         }
@@ -731,6 +896,35 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         $this->attributes[$key] = $value;
 
         return $this;
+    }
+
+    /**
+     * Set the value of a class castable attribute.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return void
+     */
+    protected function setClassCastableAttribute($key, $value)
+    {
+        if (is_null($value)) {
+            $this->attributes = array_merge($this->attributes, array_map(
+                function () {
+                },
+                $this->normalizeCastClassResponse($key, $this->resolveCasterClass($key)->set(
+                    $this, $key, $this->{$key}, $this->attributes
+                ))
+            ));
+        } else {
+            $this->attributes = array_merge(
+                $this->attributes,
+                $this->normalizeCastClassResponse($key, $this->resolveCasterClass($key)->set(
+                    $this, $key, $value, $this->attributes
+                ))
+            );
+        }
+
+        unset($this->classCastCache[$key]);
     }
 
     /**
@@ -771,7 +965,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Clone the model into a new, non-existing instance.
      *
      * @param  array|null  $except
-     * @return \Jenssegers\Model\Model
+     *
+     * @return \UseDigital\Model\GenericModel
      */
     public function replicate(array $except = null)
     {
@@ -789,7 +984,24 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function getAttributes()
     {
+        $this->mergeAttributesFromClassCasts();
+
         return $this->attributes;
+    }
+
+    /**
+     * Set the array of model attributes. No checking is done.
+     *
+     * @param  array  $attributes
+     * @return $this
+     */
+    public function setRawAttributes(array $attributes)
+    {
+        $this->attributes = $attributes;
+
+        $this->classCastCache = [];
+
+        return $this;
     }
 
     /**
@@ -949,3 +1161,5 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $this->toJson();
     }
 }
+
+class_alias(GenericModel::class, 'Usedigital\Model\Model');

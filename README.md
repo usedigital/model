@@ -1,7 +1,7 @@
 Model
 =====
 
-[![Build Status](http://img.shields.io/travis/jenssegers/model.svg)](https://travis-ci.org/jenssegers/model) [![Coverage Status](http://img.shields.io/coveralls/jenssegers/model.svg)](https://coveralls.io/r/jenssegers/model)
+[![Build Status](http://img.shields.io/travis/usedigital/model.svg)](https://travis-ci.org/usedigital/model) [![Coverage Status](http://img.shields.io/coveralls/usedigital/model.svg)](https://coveralls.io/r/usedigital/model)
 
 This model provides an Laravel eloquent-like base class that can be used to build custom models in Laravel or other frameworks.
 
@@ -23,7 +23,7 @@ Installation
 Install using composer:
 
 ```bash
-composer require jenssegers/model
+composer require usedigital/model
 ```
 
 Example
@@ -31,9 +31,9 @@ Example
 
 ```php
 
-use Jenssegers\Model\Model;
+use UseDigital\Model\GenericModel;
 
-class User extends Model {
+class User extends GenericModel {
 
     protected $hidden = ['password'];
 
