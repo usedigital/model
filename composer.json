@@ -32,7 +32,9 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "1.4-dev"
+            "dev-master": "custom-casts",
+            "master": "custom-casts",
+            "main": "custom-casts"
         }
     }
 }
